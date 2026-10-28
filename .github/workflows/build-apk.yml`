@@ -1,0 +1,33 @@
+name: Build APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack project
+        run: |
+          test -f app-source.zip || { echo "Upload app-source.zip to the repo root first"; exit 1; }
+          unzip -o app-source.zip -d project
+          ls project
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build
+        working-directory: project
+        run: gradle assembleDebug --no-daemon
+      - run: cp project/app/build/outputs/apk/debug/app-debug.apk Offline-Player.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Offline Player build ${{ github.run_number }}
+          files: Offline-Player.apk
